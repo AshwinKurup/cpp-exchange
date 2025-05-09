@@ -53,8 +53,7 @@ public:
 
     while (trading::running.load()) {
       cout << "\n\n Trader making a decision..." << endl;
-      /*std::this_thread::sleep_for(std::chrono::seconds(2));*/
-      int rand_seed = amount_dis(gen); // if side and style both rely on the order_amt then there will be bias
+      int rand_seed = amount_dis(gen);
       int order_amt = amount_dis(gen);
       float price = price_dis(gen);
 
@@ -97,7 +96,6 @@ int main() {
     
     std::thread exc_thread(std::bind(&Exchange::run, &exc));
     std::thread trader1_thread(std::bind(&Trader::trader_loop, &t1));
-    /*std::this_thread::sleep_for(std::chrono::seconds(5));  // Keep the process alive*/
     exc_thread.join();
     trader1_thread.join();
     return 0;

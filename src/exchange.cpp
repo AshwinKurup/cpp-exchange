@@ -65,7 +65,7 @@ void Exchange::on_taker_order(Order order) {
         
         if (book_order.amount == 0) {
             should_break = true;
-            book_order_queue.erase(book_order_queue.begin()); // this is O(n), so later implement as dequeue
+            book_order_queue.erase(book_order_queue.begin());
         } else if (book_order.amount < 0) {
             spdlog::error("Negative book order amount detected! This should never happen.");
             throw std::runtime_error("Negative book order amounts are not allowed");

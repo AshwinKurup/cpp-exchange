@@ -3,9 +3,7 @@
 #include "order.h"
 #include <atomic>
 #include <csignal>
-// #include "blockingconcurrentqueue.h"
 #include "concurrentqueue.h"
-// using OrderQueue = moodycamel::BlockingConcurrentQueue<Order, moodycamel::ConcurrentQueueDefaultTraits>;
 
 using OrderQueue = moodycamel::ConcurrentQueue<Order>;
 namespace trading {
