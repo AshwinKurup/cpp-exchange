@@ -35,9 +35,9 @@ void Exchange::on_taker_order(Order order) {
       std::map<float, vector<Order>>::iterator next_book_pair = order.side == Side::Buy ? quote_lvls.begin() : std::prev(quote_lvls.end());
       float book_px = next_book_pair->first;
       last_matched_px = book_px;
-      price_exceeded = order.side == Side::Buy ? (order.price < book_px) : (order.price > book_px);
+      price_exceeded = (order.side == Side::Buy ? (order.price < book_px) : (order.price > book_px));
       
-      if (price_exceeded) {
+      if (price_exceeded || amount_depleted) {
         break;
       };
       
