@@ -53,7 +53,6 @@ public:
     int sell_count;
 
     while (trading::running.load()) {
-      cout << "\n\n Trader making a decision..." << endl;
       int rand_seed = amount_dis(gen);
       int order_amt = amount_dis(gen);
       float price = price_dis(gen);
@@ -66,19 +65,15 @@ public:
       } else {
         sell_count += 1;
       }
-
-      cout << "buy count is " << buy_count << " sell count is " << sell_count << endl;
-        
       Order order1(style, side, price, order_amt, rng.generate(12));
       if (!trading::running.load()) {
         cout << "Breaking the Trader" << endl;
         break;
       }
-      cout << "Trader Pushing Order to Queue" << order1 << endl;
-
       this->queue.enqueue(order1);
-      std::this_thread::yield();
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
     };
+    spdlog::info("Finished Trader");
   }
 };
 
@@ -90,7 +85,8 @@ private:
 int main() {
     OrderQueue q;
     OrderQueue oeq;
-    Exchange exc = Exchange(q, oeq);    
+    ExchangeBenchmark benchmark;
+    Exchange exc = Exchange(q, oeq, benchmark);    
     Trader t1 = Trader(q, 0.0);  
     
     trading::setupSignalHandler();
@@ -99,10 +95,6 @@ int main() {
     std::thread trader1_thread(std::bind(&Trader::trader_loop, &t1));
     exc_thread.join();
     trader1_thread.join();
-
-    ExchangeBenchmark benchmark;
-    std::string report = benchmark.generate_report();
-    spdlog::info("Benchmark Report: {}", report);
-
+    spdlog::info("Finished");
     return 0;
 }

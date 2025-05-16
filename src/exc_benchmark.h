@@ -21,11 +21,12 @@ private:
 
 public:
     ExchangeBenchmark();
+    void reset();
     void start_order_timer();
     void end_order_timer();
     void record_matching_latency(std::chrono::nanoseconds latency);
     void calculate_metrics(std::chrono::seconds runtime);
-    std::string generate_report();
+    std::string generate_report(std::chrono::seconds runtime);
 };
 
 #endif

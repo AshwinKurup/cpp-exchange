@@ -37,7 +37,8 @@ void ExchangeBenchmark::calculate_metrics(std::chrono::seconds runtime) {
     metrics.throughput_orders_per_sec = total_orders_processed / runtime.count();
 }
 
-std::string ExchangeBenchmark::generate_report() {
+std::string ExchangeBenchmark::generate_report(std::chrono::seconds runtime) {
+    calculate_metrics(runtime);
     std::stringstream ss;
     ss << "\n==== EXCHANGE PERFORMANCE BENCHMARK RESULTS ====\n";
     ss << "total orders processed: " << total_orders_processed << "\n";
@@ -51,5 +52,18 @@ std::string ExchangeBenchmark::generate_report() {
     ss << "throughput metrics:\n";
     ss << "  orders per second: " << std::fixed << std::setprecision(2) << metrics.throughput_orders_per_sec << "\n";
     ss << "===============================================\n";
+    reset();
     return ss.str();
+}
+
+void ExchangeBenchmark::reset() {
+    order_latencies.clear();
+    total_orders_processed = 0;
+    metrics.mean_order_latency_ns = 0;
+    metrics.median_order_latency_ns = 0;
+    metrics.p99_order_latency_ns = 0;
+    metrics.max_order_latency_ns = 0;
+    metrics.throughput_orders_per_sec = 0;
+    last_checkpoint = std::chrono::high_resolution_clock::now();
+    spdlog::info("Reset ExchangeBenchmark");
 }

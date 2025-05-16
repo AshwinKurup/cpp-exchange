@@ -17,9 +17,10 @@ private:
     std::map<float, vector<Order>> asks;
     OrderQueue& q;
     OrderQueue& oeq;
+    ExchangeBenchmark& benchmark;
 
-    void on_maker_order(Order order, ExchangeBenchmark &benchmark);
-    void on_taker_order(Order order, ExchangeBenchmark &benchmark);
+    void on_maker_order(Order order);
+    void on_taker_order(Order order);
     void notify_order(float amt_traded, Order& book_order, Order& order);
     void notify_orderbook(float amt_traded, Order& book_order);
     void print_full_book();
@@ -28,7 +29,7 @@ private:
     bool is_taker(Order& order);
 
 public:
-    Exchange(OrderQueue& queue, OrderQueue& oeq);
+    Exchange(OrderQueue& queue, OrderQueue& oeq, ExchangeBenchmark& benchmark);
     void run();
 };
 

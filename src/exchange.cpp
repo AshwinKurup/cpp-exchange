@@ -9,24 +9,29 @@
 
 using namespace std;
 
-Exchange::Exchange(OrderQueue& queue, OrderQueue& oeq) 
-    : q(queue), oeq(oeq) {}
+Exchange::Exchange(OrderQueue& queue, OrderQueue& oeq, ExchangeBenchmark& benchmark) 
+    : q(queue), oeq(oeq), benchmark(benchmark) {}
 
-void Exchange::on_maker_order(Order order, ExchangeBenchmark &benchmark) {
+void Exchange::on_maker_order(Order order) {
     bool facts = order.side == Side::Buy;
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? bids : asks;
     quote_lvls[order.price].push_back(order);
 }
 
-void Exchange::on_taker_order(Order order, ExchangeBenchmark &benchmark) {
+void Exchange::on_taker_order(Order order) {
     benchmark.start_order_timer();
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? asks : bids;
     float last_matched_px;
+    int naive_iter_count = 0;
     bool price_exceeded = false;
     bool amount_depleted = false;
 
     // iterate through levels 
     while(!quote_lvls.empty()) {
+      if (naive_iter_count > 1000) {
+        spdlog::info("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
+        break;
+      }
       std::map<float, vector<Order>>::iterator next_book_pair = order.side == Side::Buy ? quote_lvls.begin() : std::prev(quote_lvls.end());
       float book_px = next_book_pair->first;
       last_matched_px = book_px;
@@ -40,6 +45,11 @@ void Exchange::on_taker_order(Order order, ExchangeBenchmark &benchmark) {
     
       // iterate through indiv queue at one level
       while (!book_order_queue.empty()) {
+        naive_iter_count++;
+        if (naive_iter_count > 1000) {
+          spdlog::info("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
+          break;
+        }
         Order& book_order = book_order_queue[0];
         int amt_traded = std::min(book_order.amount, order.amount);
         print_order_queue(book_order_queue);
@@ -114,19 +124,23 @@ bool Exchange::is_taker(Order& order) {
 
 void Exchange::run() {
     Order order;
-    ExchangeBenchmark benchmark;
     while (trading::running.load()) {
+        if (std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count() % 5 == 0) {
+            spdlog::info("Periodic report: {}", benchmark.generate_report(std::chrono::seconds(5)));
+        }
         if (q.try_dequeue(order)) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             spdlog::info("\n\n Exchange Processing: {}", order);
             if (is_taker(order)) {
-                on_taker_order(order, benchmark);
+                on_taker_order(order);
             } else {
-                on_maker_order(order, benchmark);
+                on_maker_order(order);
             }
             print_full_book();
         } else {
             std::this_thread::yield();
         }
     }
+    spdlog::info("Finished Exchange");
 }
