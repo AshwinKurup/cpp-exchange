@@ -42,13 +42,13 @@ std::string ExchangeBenchmark::generate_report() {
     ss << "\n==== EXCHANGE PERFORMANCE BENCHMARK RESULTS ====\n";
     ss << "total orders processed: " << total_orders_processed << "\n";
     
-    ss << "order Latency Metrics:\n";
+    ss << "order Latency metrics:\n";
     ss << "  mean latency: " << std::fixed << std::setprecision(2) << metrics.mean_order_latency_ns << " ns\n";
     ss << "  median latency: " << std::fixed << std::setprecision(2) << metrics.median_order_latency_ns << " ns\n";
     ss << "  99th percentile: " << std::fixed << std::setprecision(2) << metrics.p99_order_latency_ns << " ns\n";
     ss << "  max latency: " << std::fixed << std::setprecision(2) << metrics.max_order_latency_ns << " ns\n\n";
     
-    ss << "throughput Metrics:\n";
+    ss << "throughput metrics:\n";
     ss << "  orders per second: " << std::fixed << std::setprecision(2) << metrics.throughput_orders_per_sec << "\n";
     ss << "===============================================\n";
     return ss.str();
