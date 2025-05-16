@@ -1,4 +1,5 @@
 #include "exchange.h"
+#include "exc_benchmark.h" 
 #include <optional>
 #include "signal_handler.h"
 #include <thread>
@@ -11,13 +12,14 @@ using namespace std;
 Exchange::Exchange(OrderQueue& queue, OrderQueue& oeq) 
     : q(queue), oeq(oeq) {}
 
-void Exchange::on_maker_order(Order order) {
+void Exchange::on_maker_order(Order order, ExchangeBenchmark &benchmark) {
     bool facts = order.side == Side::Buy;
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? bids : asks;
     quote_lvls[order.price].push_back(order);
 }
 
-void Exchange::on_taker_order(Order order) {
+void Exchange::on_taker_order(Order order, ExchangeBenchmark &benchmark) {
+    benchmark.start_order_timer();
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? asks : bids;
     float last_matched_px;
     bool price_exceeded = false;
@@ -30,7 +32,7 @@ void Exchange::on_taker_order(Order order) {
       last_matched_px = book_px;
       price_exceeded = order.side == Side::Buy ? (order.price < book_px) : (order.price > book_px);
       
-      if price_exceeded {
+      if (price_exceeded) {
         break;
       };
       
@@ -69,6 +71,7 @@ void Exchange::on_taker_order(Order order) {
         quote_lvls.erase(book_px);
       }
     };
+    benchmark.end_order_timer();
 }
 
 void Exchange::notify_order(float amt_traded, Order& book_order, Order& order) {
@@ -111,14 +114,15 @@ bool Exchange::is_taker(Order& order) {
 
 void Exchange::run() {
     Order order;
+    ExchangeBenchmark benchmark;
     while (trading::running.load()) {
         if (q.try_dequeue(order)) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             spdlog::info("\n\n Exchange Processing: {}", order);
             if (is_taker(order)) {
-                on_taker_order(order);
+                on_taker_order(order, benchmark);
             } else {
-                on_maker_order(order);
+                on_maker_order(order, benchmark);
             }
             print_full_book();
         } else {

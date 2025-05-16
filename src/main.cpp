@@ -1,6 +1,7 @@
 #include "order.h"
 #include "exchange.h"
 #include "concurrentqueue.h"
+#include "exc_benchmark.h"
 
 #include <boost/lockfree/queue.hpp>
 #include <iostream>
@@ -98,5 +99,10 @@ int main() {
     std::thread trader1_thread(std::bind(&Trader::trader_loop, &t1));
     exc_thread.join();
     trader1_thread.join();
+
+    ExchangeBenchmark benchmark;
+    std::string report = benchmark.generate_report();
+    spdlog::info("Benchmark Report: {}", report);
+
     return 0;
 }

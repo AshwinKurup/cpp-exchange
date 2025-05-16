@@ -1,11 +1,13 @@
-
 #ifndef EXCHANGE_H
 #define EXCHANGE_H
+#include "exc_benchmark.h" 
 #include "signal_handler.h"
 #include "order.h"
 #include "blockingconcurrentqueue.h"
 #include <map>
 #include <iostream>
+#include <vector>
+#include <thread>
 
 using namespace std;
 
@@ -16,8 +18,8 @@ private:
     OrderQueue& q;
     OrderQueue& oeq;
 
-    void on_maker_order(Order order);
-    void on_taker_order(Order order);
+    void on_maker_order(Order order, ExchangeBenchmark &benchmark);
+    void on_taker_order(Order order, ExchangeBenchmark &benchmark);
     void notify_order(float amt_traded, Order& book_order, Order& order);
     void notify_orderbook(float amt_traded, Order& book_order);
     void print_full_book();
@@ -27,7 +29,6 @@ private:
 
 public:
     Exchange(OrderQueue& queue, OrderQueue& oeq);
-
     void run();
 };
 
