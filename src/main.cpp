@@ -73,7 +73,7 @@ public:
       this->queue.enqueue(order1);
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     };
-    spdlog::info("Finished Trader");
+    spdlog::debug("Finished Trader");
   }
 };
 
@@ -95,6 +95,6 @@ int main() {
     std::thread trader1_thread(std::bind(&Trader::trader_loop, &t1));
     exc_thread.join();
     trader1_thread.join();
-    spdlog::info("Finished");
+    spdlog::debug("Finished");
     return 0;
 }

@@ -65,5 +65,5 @@ void ExchangeBenchmark::reset() {
     metrics.max_order_latency_ns = 0;
     metrics.throughput_orders_per_sec = 0;
     last_checkpoint = std::chrono::high_resolution_clock::now();
-    spdlog::info("Reset ExchangeBenchmark");
+    spdlog::debug("Reset ExchangeBenchmark");
 }

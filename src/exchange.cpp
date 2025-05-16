@@ -29,7 +29,7 @@ void Exchange::on_taker_order(Order order) {
     // iterate through levels 
     while(!quote_lvls.empty()) {
       if (naive_iter_count > 1000) {
-        spdlog::info("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
+        spdlog::debug("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
         break;
       }
       std::map<float, vector<Order>>::iterator next_book_pair = order.side == Side::Buy ? quote_lvls.begin() : std::prev(quote_lvls.end());
@@ -47,7 +47,7 @@ void Exchange::on_taker_order(Order order) {
       while (!book_order_queue.empty()) {
         naive_iter_count++;
         if (naive_iter_count > 1000) {
-          spdlog::info("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
+          spdlog::debug("Early breaking for safety, very unlikely that any order queue is allowed to have >1000 orders");
           break;
         }
         Order& book_order = book_order_queue[0];
@@ -62,14 +62,14 @@ void Exchange::on_taker_order(Order order) {
         if (order.amount == 0) {
             amount_depleted = true;
         } else if (order.amount < 0) {
-            spdlog::error("Negative taker order amount detected! This should never happen.");
+            spdlog::debug("Negative taker order amount detected! This should never happen.");
             throw std::runtime_error("Negative taker order amounts are not allowed");
         }   
         
         if (book_order.amount == 0) {
             book_order_queue.erase(book_order_queue.begin());
         } else if (book_order.amount < 0) {
-            spdlog::error("Negative book order amount detected! This should never happen.");
+            spdlog::debug("Negative book order amount detected! This should never happen.");
             throw std::runtime_error("Negative book order amounts are not allowed");
         }
         if (amount_depleted) {
@@ -85,20 +85,20 @@ void Exchange::on_taker_order(Order order) {
 }
 
 void Exchange::notify_order(float amt_traded, Order& book_order, Order& order) {
-  spdlog::info("Notifying order, book order: {}, taker order: {}", book_order, order);
+  spdlog::debug("Notifying order, book order: {}, taker order: {}", book_order, order);
 }
 
 void Exchange::notify_orderbook(float amt_traded, Order& book_order) {
-  spdlog::info("Notifying order book update: {} units traded for book order: {}", amt_traded, book_order);
+  spdlog::debug("Notifying order book update: {} units traded for book order: {}", amt_traded, book_order);
 }
 
 void Exchange::print_full_book() {
-    spdlog::info("=============");
+    spdlog::debug("=============");
     print_levels(asks, QuoteSide::Ask);
-    spdlog::info("===== A =====");
-    spdlog::info("===== B =====");
+    spdlog::debug("===== A =====");
+    spdlog::debug("===== B =====");
     print_levels(bids, QuoteSide::Bid);
-    spdlog::info("=============");
+    spdlog::debug("=============");
 }
 
 void Exchange::print_levels(const std::map<float, vector<Order>>& ob, QuoteSide quote_side) {
@@ -111,7 +111,7 @@ void Exchange::print_levels(const std::map<float, vector<Order>>& ob, QuoteSide 
 
 void Exchange::print_order_queue(const vector<Order>& orderbook_queue) {
     for (const Order& order : orderbook_queue) {
-      spdlog::info("Order in queue: {}", order);
+      spdlog::debug("Order in queue: {}", order);
     }
 }
 
@@ -131,7 +131,7 @@ void Exchange::run() {
         }
         if (q.try_dequeue(order)) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
-            spdlog::info("\n\n Exchange Processing: {}", order);
+            spdlog::debug("\n\n Exchange Processing: {}", order);
             if (is_taker(order)) {
                 on_taker_order(order);
             } else {
@@ -142,5 +142,5 @@ void Exchange::run() {
             std::this_thread::yield();
         }
     }
-    spdlog::info("Finished Exchange");
+    spdlog::debug("Finished Exchange");
 }
