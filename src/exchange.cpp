@@ -14,70 +14,58 @@ Exchange::Exchange(OrderQueue& queue, OrderQueue& oeq)
 void Exchange::on_maker_order(Order order) {
     bool facts = order.side == Side::Buy;
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? bids : asks;
-    spdlog::info("within order.side: {} for on on_maker_order and our truth is that: {}", order, facts);
     quote_lvls[order.price].push_back(order);
 }
 
 void Exchange::on_taker_order(Order order) {
     std::map<float, vector<Order>>& quote_lvls = order.side == Side::Buy ? asks : bids;
     float last_matched_px;
-    bool break_cond = false;
-    while(!quote_lvls.empty() && !break_cond) {
-      
+    bool price_exceeded = false;
+    bool amount_depleted = false;
+
+    // iterate through levels 
+    while(!quote_lvls.empty()) {
       std::map<float, vector<Order>>::iterator next_book_pair = order.side == Side::Buy ? quote_lvls.begin() : std::prev(quote_lvls.end());
       float book_px = next_book_pair->first;
-      spdlog::info("Iteration price: {}, Order side: {}, Quote levels size: {}, Order: {}",
-                   book_px, order.side, quote_lvls.size(), order);
       last_matched_px = book_px;
-      break_cond = order.side == Side::Buy ? (order.price < book_px) : (order.price > book_px);
-      bool stillcan = order.amount > 0;
-      spdlog::info("Order amount: {}, Can still trade: {}", order.amount, stillcan);
-      break_cond = break_cond || (order.amount == 0);
-      if (break_cond) {
+      price_exceeded = order.side == Side::Buy ? (order.price < book_px) : (order.price > book_px);
+      
+      if price_exceeded {
         break;
-      }
+      };
       
       vector<Order>& book_order_queue = next_book_pair->second;
     
-      bool should_break = false; 
-      while (!book_order_queue.empty() && !should_break) {
-
-        print_order_queue(book_order_queue);
+      // iterate through indiv queue at one level
+      while (!book_order_queue.empty()) {
         Order& book_order = book_order_queue[0];
-        spdlog::info("Book order: {}", book_order);
-        int _amt_traded = std::min(book_order.amount, order.amount);
-        int amt_traded = std::max(_amt_traded, 0);
-        spdlog::info("Book order queue size: {}, _amt_traded: {}, amt_traded: {}, Taker order: {}, Should break: {}",
-                     book_order_queue.size(), _amt_traded, amt_traded, order, should_break);
-        
+        int amt_traded = std::min(book_order.amount, order.amount);
+        print_order_queue(book_order_queue);
+
         book_order.amount -= amt_traded;
         order.amount -= amt_traded;
         notify_order(amt_traded, book_order, order); 
         notify_orderbook(amt_traded, book_order);
 
         if (order.amount == 0) {
-            spdlog::info("Setting should_break to true because order amount is zero: {}", order.amount);
-            should_break = true;
+            amount_depleted = true;
         } else if (order.amount < 0) {
             spdlog::error("Negative taker order amount detected! This should never happen.");
             throw std::runtime_error("Negative taker order amounts are not allowed");
         }   
         
         if (book_order.amount == 0) {
-            should_break = true;
             book_order_queue.erase(book_order_queue.begin());
         } else if (book_order.amount < 0) {
             spdlog::error("Negative book order amount detected! This should never happen.");
             throw std::runtime_error("Negative book order amounts are not allowed");
         }
-
-        if (should_break) {
+        if (amount_depleted) {
           break;
         } 
       };
 
       if (book_order_queue.empty()) {
-        spdlog::info("Consumed price level: {}", book_px);
         quote_lvls.erase(book_px);
       }
     };
@@ -118,7 +106,6 @@ bool Exchange::is_taker(Order& order) {
   bool taker = (!asks.empty() && order.side == Side::Buy && order.price >= asks.begin()->first) ||
                (!bids.empty() && order.side == Side::Sell && order.price <= bids.rbegin()->first) || 
                (order.style == Style::Taker);
-  spdlog::info("Order: {}, Is taker: {}", order, taker);
   return taker;
 }
 
@@ -128,7 +115,6 @@ void Exchange::run() {
         if (q.try_dequeue(order)) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             spdlog::info("\n\n Exchange Processing: {}", order);
-            spdlog::info("Decided is taker order: {}", is_taker(order)); 
             if (is_taker(order)) {
                 on_taker_order(order);
             } else {
